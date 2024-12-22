@@ -5,7 +5,7 @@ import torch
 from torch.optim import AdamW
 
 # Step 1: Load Proof-Pile-2 Dataset
-dataset = load_dataset("EleutherAI/proof-pile-2", 'default', split="train[:1%]")
+dataset = load_dataset("EleutherAI/proof-pile-2", 'default', split="train[:.05%]")
 
 # Step 2: Load Tokenizer and Define Configuration for GPT Model
 tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
@@ -33,12 +33,11 @@ def tokenize_function(examples):
     return tokenizer(examples["text"], padding="max_length", truncation=True, max_length=1024)
 
 # Apply the tokenizer to the dataset
-tokenized_datasets = dataset.map(tokenize_function, batched=True, remove_columns=["text"])
+tokenized_dataset = dataset.map(tokenize_function, batched=True, remove_columns=["text"])
 
 # Step 5: Create DataLoader for Training
 # Prepare the dataset for training
-train_dataset = tokenized_datasets["train"]
-train_dataloader = DataLoader(train_dataset, batch_size=4, shuffle=True)
+train_dataloader = DataLoader(tokenized_dataset, batch_size=4, shuffle=True)
 
 # Step 6: Set Up Optimizer
 optimizer = AdamW(model.parameters(), lr=5e-5)
@@ -47,7 +46,8 @@ optimizer = AdamW(model.parameters(), lr=5e-5)
 model.train()  # Set the model to training mode
 for epoch in range(1):  # Set the number of epochs you want
     for batch in train_dataloader:
-        input_ids = batch["input_ids"].to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+        # print(batch["input_ids"])
+        input_ids = torch.stack(batch["input_ids"]).to(model.device)
         labels = input_ids  # In language modeling, labels are the same as input IDs
         
         optimizer.zero_grad()
