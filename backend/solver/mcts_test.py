@@ -14,9 +14,13 @@ print(f'DEFAULT_LEAN_WORKSPACE: {DEFAULT_LEAN_WORKSPACE}')
 
 
 def generate(s: str, counter: int) -> str:
-    out = ["example (a b c : Nat): c + a + b = a + (b + c) := by\n  cases a with\n  | zero => ", "example (a b c : Nat): c + a + b = a + (b + c) := by\n  rw [Nat.add_assoc] ",
-           "example (a b c : Nat): c + a + b = a + (b + c) := by\n  rw [Nat.add_assoc]\n  rw [<- Nat.add_comm]\n  rw [Nat.add_assoc]"][counter]
-    return out
+    out: list[str] = [
+        "example (a b c : Nat): c + a + b = a + (b + c) := by\n  cases a with\n  | zero => ",
+        "example (a b c : Nat): c + a + b = a + (b + c) := by\n  rw [Nat.add_assoc] ",
+        "example (a b c : Nat): c + a + b = a + (b + c) := by\n  rw [Nat.add_assoc]\n  rw [<- Nat.add_comm]\n  rw [Nat.add_assoc]"
+    ]
+
+    return out[counter]
 
 
 def count_leading_whitespace(s: str) -> int:
@@ -47,6 +51,8 @@ def get_errors(msgs: list[dict]) -> list[dict]:
 
 def do_work(prompt: str) -> Generator[str, None, None]:
 
+    yield prompt
+
     counter: int = 0
     while True:
         temp = generate(prompt, counter)
@@ -54,8 +60,6 @@ def do_work(prompt: str) -> Generator[str, None, None]:
 
         # Create a proper JSON command for the Lake REPL
         repl_command = {"cmd": temp, "infotree": "tactics"}
-
-        yield prompt
 
         # Convert the command to JSON string
         json_input = json.dumps(repl_command)
@@ -70,7 +74,8 @@ def do_work(prompt: str) -> Generator[str, None, None]:
             timeout=300
         )
 
-        yield process.stderr
+        # yield process.stderr
+        # print(f'process.stderr: {process.stderr}')
 
         output = json.loads(process.stdout)
         messages = output.get("messages")
@@ -79,10 +84,11 @@ def do_work(prompt: str) -> Generator[str, None, None]:
             break
 
         node = get_last_tactic_node(output["infotree"][0])
-        prompt = add_goal(
-            temp, node['node']['stx']['range']
-            ['finish'], node['node']['goalsBefore'][0]
-        )
+        yield temp
+        # prompt = add_goal(
+        #     temp, node['node']['stx']['range']
+        #     ['finish'], node['node']['goalsBefore'][0]
+        # )
 
 
 if __name__ == "__main__":

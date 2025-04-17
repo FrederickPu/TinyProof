@@ -1,4 +1,6 @@
+import asyncio
 import logging
+from random import randint
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -40,6 +42,7 @@ async def proof_solver_websocket(websocket: WebSocket):
         for response in do_work("example (a b c : Nat): c + a + b = a + (b + c) := by"):
             logging.info(f"[WebSocket] sending response: {response}")
             await websocket.send_text(response)
+            await asyncio.sleep(randint(1, 3))
 
     except WebSocketDisconnect:
         logging.info("[WebSocket] disconnected")
